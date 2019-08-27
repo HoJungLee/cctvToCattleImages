@@ -46,7 +46,6 @@ def transparent_back(image):
 
     L,H = image.size
     color_0 = (15,12,125,255)
-#    color_0 = image.getpixel((0, 0))
     for h in range(H):
         for l in range(L):
             dot = (l, h)
