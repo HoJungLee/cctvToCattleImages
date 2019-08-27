@@ -1,3 +1,6 @@
+# 제가 추가한 코드들은 다 주석처리 합니다.
+# 시간되면 정리하겠습니다. 
+
 from data import COCODetection, get_label_map, MEANS, COLORS
 from yolact import Yolact
 from utils.augmentations import BaseTransform, FastBaseTransform, Resize
@@ -28,6 +31,10 @@ from PIL import Image
 
 import matplotlib.pyplot as plt
 import cv2
+
+
+# 여기다가 추적기라 배경지우개랑 추가
+# 그리고 전역 변수로 추적기 선언
 
 def str2bool(v):
     if v.lower() in ('yes', 'true', 't', 'y', '1'):
@@ -176,6 +183,9 @@ def prep_display(dets_out, img, h, w, undo_transform=True, class_color=False, ma
                 color_cache[on_gpu][color_idx] = color
             return color
 
+    # 여기서 부터 마스킹을 씨우는 구간입니다.
+    # 이 부분을 지워야 마스크 칠이 안되요
+    
     # First, draw the masks on the GPU where we can do it really fast
     # Beware: very fast but possibly unintelligible mask-drawing code ahead
     # I wish I had access to OpenGL or Vulkan but alas, I guess Pytorch tensor operations will have to suffice
@@ -203,17 +213,28 @@ def prep_display(dets_out, img, h, w, undo_transform=True, class_color=False, ma
         
     # Then draw the stuff that needs to be done on the cpu
     # Note, make sure this is a uint8 tensor or opencv will not anti alias text for whatever reason
+    
+    # 여기까지가 마스킹이에요
+    
     img_numpy = (img_gpu * 255).byte().cpu().numpy()
+    
+    # 클래스랑 확률이랑 박스랑 마스크 정보 가지고 옵니다
+    # classes, scores, boxes, masks = [x[:args.top_k].cpu().numpy() for x in t[:4]]
+    
     
     if args.display_text or args.display_bboxes:
         for j in reversed(range(num_dets_to_consider)):
             x1, y1, x2, y2 = boxes[j, :]
             color = get_color(j)
             score = scores[j]
-
+            
+            # 이미지 뽑을땐 이번if문은 사용 안합니다.   
             if args.display_bboxes:
                 cv2.rectangle(img_numpy, (x1, y1), (x2, y2), color, 1)
 
+                
+                
+            # 여기도 사용안해요    
             if args.display_text:
                 _class = cfg.dataset.class_names[classes[j]]
                 text_str = '%s: %.2f' % (_class, score) if args.display_scores else _class
@@ -229,7 +250,11 @@ def prep_display(dets_out, img, h, w, undo_transform=True, class_color=False, ma
 
                 cv2.rectangle(img_numpy, (x1, y1), (x1 + text_w, y1 - text_h - 4), color, -1)
                 cv2.putText(img_numpy, text_str, text_pt, font_face, font_scale, text_color, font_thickness, cv2.LINE_AA)
-    
+                
+            # 여기다가 추적기랑 배경 지우개
+            # 저장하는 함수를 넣습니다.
+            # 주의사항으로 절대 img_numpy를 수정하지 않습니다.
+     
     return img_numpy
 
 def prep_benchmark(dets_out, h, w):
